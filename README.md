@@ -1,60 +1,92 @@
-# ☁️ AWS Infrastructure Provisioning with Terraform
+# AWS 3-Tier High-Availability Web Application Infrastructure
 
-[![Terraform Version](https://img.shields.io/badge/Terraform-v1.0+-623CE4?logo=terraform)](https://www.terraform.io/)
-[![AWS Provider](https://img.shields.io/badge/Cloud-AWS-FF9900?logo=amazonaws)](https://aws.amazon.com/)
-[![CI/CD Focus](https://img.shields.io/badge/Automation-Jenkins_Ready-D24939?logo=jenkins)](https://www.jenkins.io/)
-[![License](https://img.shields.io/badge/License-MIT-green)](LICENSE)
+This repository contains **Terraform** code to provision a highly available, multi-AZ **3-Tier Web Application** architecture on **Amazon Web Services (AWS)**.
 
-## 📖 Project Overview
-
-This repository hosts an **Infrastructure as Code (IaC)** solution utilizing **Terraform** to provision a secure and scalable cloud environment on **Amazon Web Services (AWS)**.
-
-The primary objective is to automate the deployment of foundational resources, including network components and an **EC2 instance pre-configured to host a Jenkins CI/CD server**. This demonstrates practices for **Idempotence** and environment consistency.
+The infrastructure follows best practices for resilience and security, deploying:
+* **Presentation Tier:** Application Load Balancer (ALB) in Public Subnets.
+* **Application Tier:** Two EC2 Web Servers in separate Private Subnets.
+* **Data Tier:** Multi-AZ RDS MySQL Database Instance in the Private Subnets.
 
 ---
 
-## 🏗️ Architecture Diagram
+## ✨ Key Features
 
-The following diagram illustrates the key AWS resources provisioned by this configuration and their communication flow:
+* **High Availability (HA):** All core components (Web Servers, ALB, RDS) are distributed across **two Availability Zones (AZs)**.
+* **Security:** Web servers and the database are isolated in **Private Subnets**. Access is controlled via dedicated Security Groups (SGs).
+* **Outbound Internet Access:** Dedicated **NAT Gateways** (one per AZ) ensure web servers can perform updates and download packages without being publicly accessible.
+* **Infrastructure as Code (IaC):** Full infrastructure lifecycle managed by **Terraform**.
+* **Custom Web Server:** Web servers run a basic Apache web page showing the **Instance ID** and **Availability Zone** for easy load balancing verification.
 
-```mermaid
-graph TD
-    User((👤 Administrator)) -->|SSH / HTTPS| IGW[Internet Gateway]
-    IGW -->|Traffic| VPC[☁️ AWS VPC (main)]
-    
-    subgraph VPC [Virtual Private Cloud]
-        subgraph Public_Subnet [Public Subnet]
-            EC2[🖥️ EC2 Instance]
-            Jenkins[⚙️ Jenkins Server]
-        end
-        
-        SG[🛡️ Security Group] -.->|Allow Port 22/8080| EC2
-    end
+---
 
-    EC2 -->|User Data Script| Jenkins
-    
-    style VPC fill:#e1f5fe,stroke:#01579b
-    style Public_Subnet fill:#fff9c4,stroke:#fbc02d
-    style Jenkins fill:#ffccbc,stroke:#bf360c
-Note: Security Groups (defined in security.tf) restrict access to only the necessary ports (SSH, HTTP/Jenkins UI) for enhanced security.🔄 Provisioning WorkflowThis sequence diagram details the standard deployment process using the Terraform CLI:مقتطف الرمزsequenceDiagram
-    participant Dev as DevOps Engineer
-    participant Git as GitHub Repository
-    participant TF as Terraform CLI
-    participant AWS as AWS Provider
+## 📐 Architecture Diagram
 
-    Dev->>Git: 1. Push Code (.tf files)
-    Dev->>TF: 2. terraform init
-    TF-->>Dev: Provider Plugins Downloaded
-    Dev->>TF: 3. terraform plan
-    TF-->>Dev: Review Execution Plan
-    Dev->>TF: 4. terraform apply
-    TF->>AWS: 🚀 Creates/Updates Resources
-    AWS-->>TF: Returns Resource IDs
-    TF->>AWS: 📜 Run `jenkins_installation.sh` (User Data)
-    TF-->>Dev: ✅ Output: Public IP
-📂 Project Structure and ComponentsComponent FileResource Managed / PurposeKey Terraform Conceptmain.tfDefines core network resources (aws_vpc, aws_subnet) and the EC2 instance.Resourcessecurity.tfDefines aws_security_group rules to govern all inbound and outbound traffic.Networking & Securityvariables.tfCentralized location for input values (e.g., instance type, region).Variablesoutputs.tfProvides necessary post-deployment information, such as the public IP address.Outputsjenkins_installation.shA Bash script used as User Data to bootstrap the Jenkins server installation upon EC2 launch.Provisioners🚀 Getting StartedPrerequisitesAWS CLI configured with appropriate access credentials.Terraform CLI installed locally (tested with version 1.0+).Deployment StepsClone the Repository:Bashgit clone [https://github.com/Migo205/terraform_iac.git](https://github.com/Migo205/terraform_iac.git)
-cd terraform_iac
-Initialize the Working Directory:Bashterraform init
-Review and Apply:Bashterraform plan
-terraform apply -auto-approve
-Access Jenkins:Use the public IP address provided in the output, append port 8080, and access the Jenkins UI: http://<output_public_ip>:8080🛡️ Security and Best PracticesState Management: The .tfstate file is strictly excluded via .gitignore as it contains sensitive state data. In production environments, remote backends (like AWS S3 with DynamoDB locking) must be used.Credentials: AWS credentials should be managed via environment variables or IAM roles, not committed to the repository.📜 LicenseDistributed under the MIT License. See LICENSE for details.Author: Abdulmajeed Mahmoud
+
+
+---
+
+## 🛠️ Components Provisioned
+
+| Component | AWS Resource | Tier | High Availability | Details |
+| :--- | :--- | :--- | :--- | :--- |
+| **VPC & Networking** | `aws_vpc`, `aws_subnet`, `aws_route_table`, `aws_route_table_association` | Network | Multi-AZ | 2 Public Subnets, 2 Private Subnets across 2 AZs. |
+| **Internet Access** | `aws_internet_gateway`, `aws_eip`, `aws_nat_gateway` | Network | Multi-AZ | 1 IGW for public subnets, 2 EIPs & 2 NAT Gateways for private subnets. |
+| **Load Balancer** | `aws_lb`, `aws_lb_listener`, `aws_lb_target_group` | Presentation | Multi-AZ | Application Load Balancer (ALB) on HTTP port 80. |
+| **Web Servers** | `aws_instance`, `data.aws_ami` | Application | Multi-AZ | 2 x `t2.micro` instances running Ubuntu 22.04 LTS (Apache installed via `user-data`). |
+| **Database** | `aws_db_instance`, `aws_db_subnet_group` | Data | Multi-AZ | RDS MySQL 8.0 instance (`db.t3.micro`) with encrypted storage. |
+| **Security** | `aws_security_group` | Security | N/A | Dedicated SGs for ALB, Web, and RDS to enforce least-privilege access. |
+
+---
+
+## 🔒 Security Group Rules Summary
+
+| Security Group | Inbound Protocol:Port | Source | Purpose |
+| :--- | :--- | :--- | :--- |
+| **ALB SG** | HTTP:80 | `0.0.0.0/0` (Internet) | Allows public access to the Load Balancer. |
+| **Web SG** | HTTP:80 | `ALB SG ID` | Allows traffic **only** from the Application Load Balancer. |
+| **RDS SG** | MySQL:3306 | `Web SG ID` | Allows database connection **only** from the Web Servers. |
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+1.  **AWS Account:** You must have an active AWS account.
+2.  **AWS CLI Configured:** Ensure the AWS CLI is configured with credentials and access to the target region (the default profile is used in `provider.tf`).
+3.  **Terraform:** Install Terraform (v1.0+ recommended).
+
+### Deployment Steps
+
+1.  **Clone the Repository:**
+    ```bash
+    git clone <your-repo-url>
+    cd <repo-directory>
+    ```
+
+2.  **Initialize Terraform:**
+    ```bash
+    terraform init
+    ```
+
+3.  **Review the Plan:**
+    ```bash
+    terraform plan
+    ```
+    *(Optional: Adjust variables in `variables.tf` if needed, such as region, CIDR blocks, or instance type.)*
+
+4.  **Apply the Configuration:**
+    ```bash
+    terraform apply
+    ```
+    Type `yes` to confirm the deployment.
+
+### Accessing the Application
+
+Once the deployment is complete, Terraform will output the public URL.
+
+Check the outputs:
+```bash
+terraform output
+The application can be accessed via the website_url output:http://<ALB-DNS-NAME>CleanupTo destroy all resources and avoid ongoing charges:Bashterraform destroy
+Type yes to confirm the destruction.⚙️ Configuration DetailsThe default configuration uses the following values, defined in variables.tf:VariableDefault ValueDescriptionregionus-east-1AWS deployment region.vpc_cidr10.0.0.0/16Main VPC CIDR block.instance_typet2.microEC2 instance size for web servers.availability_zone_1us-east-1aFirst Availability Zone.availability_zone_2us-east-1bSecond Availability Zone.public_subnet_1_cidr10.0.10.0/24Public Subnet 1 CIDR.private_subnet_1_cidr10.0.100.0/24Private Subnet 1 CIDR..........(Note: The RDS password is set to SuperSecret1234 in main.tf for demonstration purposes. Always use a secrets manager or secure variable for production deployments.)
