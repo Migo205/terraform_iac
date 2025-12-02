@@ -1,74 +1,104 @@
-# Comprehensive DevOps & Cloud Engineering Project on AWS
-A complete end-to-end project demonstrating modern DevOps practices, including Containerization (Docker), Orchestration (Kubernetes), CI/CD pipelines (Jenkins, GitHub Actions), and robust Monitoring (Prometheus & Grafana) on AWS infrastructure.
+# AWS 3-Tier HA Terraform Infrastructure
+A Terraform project for deploying a highly available 3-tier architecture on AWS with auto-scaling, multi-AZ deployment, and secure networking.
 
-## Architecture & Toolset Overview
-This project integrates multiple industry-standard tools to create an automated and observable application deployment workflow.
+## Features
+* **3-Tier Architecture:** Web, Application, and Database tiers
+* **High Availability:** Multi-AZ deployment across availability zones
+* **Auto Scaling:** Automatic scaling of web and application tiers
+* **Security:** Network segmentation with public/private subnets
+* **Infrastructure as Code:** Complete environment defined in Terraform
 
-### Core Technologies
-| Category | Tools Used | Purpose |
-| :--- | :--- | :--- |
-| **Cloud Provider** | AWS (EC2, VPC, EKS/ECS, S3) | Infrastructure hosting and services. |
-| **Containerization** | Docker | Packaging applications into portable containers. |
-| **Orchestration** | Kubernetes (K8s) | Managing, scaling, and deploying containerized applications. |
-| **CI/CD** | Jenkins, GitHub Actions | Automating the build, test, and deployment process. |
-| **Monitoring** | Prometheus, Grafana | Collecting metrics, visualizing performance, and setting alerts. |
-| **Infrastructure** | Terraform, Ansible | Infrastructure as Code (IaC) and Configuration Management. |
-| **Source Control** | Git, GitHub | Version control and collaboration. |
-
-## Key Project Features
-* **Full CI/CD Pipeline:** Automated application deployment triggered by Git pushes.
-* **Kubernetes Cluster Management:** Deployment of an application onto a scalable K8s cluster (using EKS or self-managed Kubeadm).
-* **Zero Downtime Deployment:** Implementing rolling updates strategies in K8s.
-* **Centralized Monitoring Stack:** Integration of Prometheus for metric scraping and Grafana for dashboards/alerting.
-* **Configuration Management:** Using Ansible for initial server setup and configuration.
-* **Infrastructure Provisioning:** Defining and managing all cloud resources via Terraform.
-
-## 🚀 Quick Start & Workflow
+## Quick Start
 
 ### Prerequisites
-* AWS Account configured with CLI
-* Docker installed locally
-* `kubectl` and `helm` installed
-* Terraform and Ansible installed
+* Terraform 1.0+
+* AWS CLI configured
+* AWS Account with appropriate permissions
 
-### Deployment Steps (High-Level Workflow)
-1. **Provision Infrastructure (Terraform):** Deploy VPC, EC2 instances (or EKS cluster), and networking resources.
-2. **Configuration (Ansible):** Use Ansible to configure the Jenkins server and Kubernetes worker nodes.
-3. **Application Build (Docker):** Build and tag the application Docker image.
-4. **CI/CD (Jenkins/Actions):** The CI/CD tool pulls code, runs tests, pushes the image to Docker Hub/ECR, and deploys the new manifest to the K8s cluster.
-5. **Monitoring Setup:** Deploy the Prometheus and Grafana stack within the cluster to monitor nodes and application metrics.
+### Deployment
+1. Clone the repository:
+`git clone https://github.com/Migo205/aws-3tier-ha-terraform-.git`
+`cd aws-3tier-ha-terraform-`
+2. Configure variables in `terraform.tfvars` (use `terraform.tfvars.example` as template)
+3. Initialize and deploy:
+`terraform init`
+`terraform plan`
+`terraform apply`
 
-## CI/CD Pipeline Detail (Example with Jenkins)
-The Jenkins pipeline automates the following stages:
-1. **Source Code Checkout:** Pull code from GitHub.
-2. **Unit Tests:** Execute application unit tests.
-3. **Build Docker Image:** Create the production-ready container image.
-4. **Push to Registry:** Push the image to a container registry (e.g., ECR).
-5. **K8s Deployment:** Apply updated Kubernetes manifests (e.g., updating the image tag in the Deployment resource).
+## Architecture
 
-## Monitoring Stack Configuration
-* **Prometheus:** Configured to scrape metrics from K8s nodes, containers, and applications (via Service Monitors or Exporters).
-* **Grafana:** Dashboard setup for real-time visualization of CPU, Memory, Network I/O, and application-specific metrics (HTTP request latency, error rates).
-* **Alertmanager:** Integration for sending notifications based on predefined threshold rules (e.g., low disk space, high CPU usage).
+### Components
+* **Web Tier:** ALB + Auto Scaling Group (EC2 instances)
+* **App Tier:** Internal ALB + EC2 instances in private subnets
+* **Data Tier:** Multi-AZ RDS with automated backups
+* **Networking:** VPC with public/private subnets, NAT Gateway, Security Groups
+
+### Network Design
+* VPC with CIDR block
+* Public subnets for web tier
+* Private subnets for app and database tiers
+* Internet Gateway for public access
+* NAT Gateway for private instance internet access
+
+## Configuration
+
+### Key Variables
+`aws_region = "us-east-1"`
+`vpc_cidr = "10.0.0.0/16"`
+`availability_zones = ["us-east-1a", "us-east-1b"]`
+`web_instance_type = "t3.medium"`
+`app_instance_type = "t3.medium"`
+`db_instance_class = "db.t3.medium"`
+
+### Optional Features
+* Enable/disable CloudWatch monitoring
+* Configure Auto Scaling policies
+* Set backup retention period
+* Enable VPC Flow Logs
 
 ## Project Structure
-`devops-project-repo/`
-`├── terraform/          # All IaC files for AWS resources`
-`├── ansible/            # Playbooks for configuration management`
-`├── jenkins/            # Jenkinsfile and related scripts`
-`├── k8s-manifests/      # Kubernetes Deployment, Service, and Ingress YAMLs`
-`├── app/                # Sample application code (e.g., Python/Node.js)`
-`├── dockerfile/         # Dockerfile for the application`
-`└── monitoring/         # Prometheus and Grafana configuration files`
+`├── main.tf             # Main configuration`
+`├── variables.tf        # Variable definitions`
+`├── outputs.tf          # Output values`
+`├── terraform.tfvars    # Variable values`
+`├── modules/            # Reusable modules`
+`└── scripts/            # Bootstrap scripts`
 
-## Security and Best Practices
-* **Secret Management:** Handling sensitive data (passwords, tokens) using Kubernetes Secrets or AWS Secrets Manager.
-* **Least Privilege:** Implementing RBAC in Kubernetes and IAM roles on AWS.
-* **Health Checks:** Defining Liveness and Readiness probes in Kubernetes deployments.
-* **Image Scanning:** Integrating vulnerability scanning into the CI pipeline.
+## Operations
 
-## Get Started
-Please refer to the specific documentation and scripts within the corresponding directories for detailed configuration and execution instructions.
+### Scaling
+Update instance counts in variables and reapply:
+`terraform apply -var="web_instance_count=4"`
+
+### Updates
+`terraform plan`
+`terraform apply`
+
+### Cleanup
+`terraform destroy`
+
+## Outputs
+After deployment, access:
+* Web Load Balancer DNS name
+* Database endpoint
+* VPC ID and subnet details
+* CloudWatch dashboard (if enabled)
+
+## Security
+* Security groups with minimal required access
+* IAM roles with least privilege
+* Database encryption at rest
+* Network ACLs for additional security
+
+## Cost Optimization
+* Use Auto Scaling to adjust capacity
+* Implement monitoring for unused resources
+* Consider reserved instances for baseline capacity
+
+## Support
+For issues or questions:
+* Check existing GitHub issues
+* Create a new issue with detailed description
 
 ## License
-MIT License - See the LICENSE file for details.
+MIT License - See LICENSE file for details.
