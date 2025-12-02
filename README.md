@@ -17,116 +17,88 @@ A Terraform project for deploying a highly available 3-tier architecture on AWS 
 
 ### Deployment
 1. Clone the repository:
-```bash
-git clone [https://github.com/Migo205/aws-3tier-ha-terraform-.git](https://github.com/Migo205/aws-3tier-ha-terraform-.git)
-cd aws-3tier-ha-terraform-
-Configure variables in terraform.tfvars (use terraform.tfvars.example as template)
+`git clone https://github.com/Migo205/aws-3tier-ha-terraform-.git`
+`cd aws-3tier-ha-terraform-`
+2. Configure variables in `terraform.tfvars` (use `terraform.tfvars.example` as template)
+3. Initialize and deploy:
+`terraform init`
+`terraform plan`
+`terraform apply`
 
-Initialize and deploy:
+## Architecture
 
-Bash
+### Components
+* **Web Tier:** ALB + Auto Scaling Group (EC2 instances)
+* **App Tier:** Internal ALB + EC2 instances in private subnets
+* **Data Tier:** Multi-AZ RDS with automated backups
+* **Networking:** VPC with public/private subnets, NAT Gateway, Security Groups
 
-terraform init
-terraform plan
-terraform apply
-Architecture
-Components
-Web Tier: ALB + Auto Scaling Group (EC2 instances)
+### Network Design
+* VPC with CIDR block
+* Public subnets for web tier
+* Private subnets for app and database tiers
+* Internet Gateway for public access
+* NAT Gateway for private instance internet access
 
-App Tier: Internal ALB + EC2 instances in private subnets
+## Configuration
 
-Data Tier: Multi-AZ RDS with automated backups
+### Key Variables
+`aws_region = "us-east-1"`
+`vpc_cidr = "10.0.0.0/16"`
+`availability_zones = ["us-east-1a", "us-east-1b"]`
+`web_instance_type = "t3.medium"`
+`app_instance_type = "t3.medium"`
+`db_instance_class = "db.t3.medium"`
 
-Networking: VPC with public/private subnets, NAT Gateway, Security Groups
+### Optional Features
+* Enable/disable CloudWatch monitoring
+* Configure Auto Scaling policies
+* Set backup retention period
+* Enable VPC Flow Logs
 
-Network Design
-VPC with CIDR block
+## Project Structure
+`├── main.tf             # Main configuration`
+`├── variables.tf        # Variable definitions`
+`├── outputs.tf          # Output values`
+`├── terraform.tfvars    # Variable values`
+`├── modules/            # Reusable modules`
+`└── scripts/            # Bootstrap scripts`
 
-Public subnets for web tier
+## Operations
 
-Private subnets for app and database tiers
-
-Internet Gateway for public access
-
-NAT Gateway for private instance internet access
-
-Configuration
-Key Variables
-Terraform
-
-aws_region = "us-east-1"
-vpc_cidr = "10.0.0.0/16"
-availability_zones = ["us-east-1a", "us-east-1b"]
-web_instance_type = "t3.medium"
-app_instance_type = "t3.medium"
-db_instance_class = "db.t3.medium"
-Optional Features
-Enable/disable CloudWatch monitoring
-
-Configure Auto Scaling policies
-
-Set backup retention period
-
-Enable VPC Flow Logs
-
-Project Structure
-Plaintext
-
-├── main.tf             # Main configuration
-├── variables.tf        # Variable definitions
-├── outputs.tf          # Output values
-├── terraform.tfvars    # Variable values
-├── modules/            # Reusable modules
-└── scripts/            # Bootstrap scripts
-Operations
-Scaling
+### Scaling
 Update instance counts in variables and reapply:
+`terraform apply -var="web_instance_count=4"`
 
-Bash
+### Updates
+`terraform plan`
+`terraform apply`
 
-terraform apply -var="web_instance_count=4"
-Updates
-Bash
+### Cleanup
+`terraform destroy`
 
-terraform plan
-terraform apply
-Cleanup
-Bash
-
-terraform destroy
-Outputs
+## Outputs
 After deployment, access:
+* Web Load Balancer DNS name
+* Database endpoint
+* VPC ID and subnet details
+* CloudWatch dashboard (if enabled)
 
-Web Load Balancer DNS name
+## Security
+* Security groups with minimal required access
+* IAM roles with least privilege
+* Database encryption at rest
+* Network ACLs for additional security
 
-Database endpoint
+## Cost Optimization
+* Use Auto Scaling to adjust capacity
+* Implement monitoring for unused resources
+* Consider reserved instances for baseline capacity
 
-VPC ID and subnet details
-
-CloudWatch dashboard (if enabled)
-
-Security
-Security groups with minimal required access
-
-IAM roles with least privilege
-
-Database encryption at rest
-
-Network ACLs for additional security
-
-Cost Optimization
-Use Auto Scaling to adjust capacity
-
-Implement monitoring for unused resources
-
-Consider reserved instances for baseline capacity
-
-Support
+## Support
 For issues or questions:
+* Check existing GitHub issues
+* Create a new issue with detailed description
 
-Check existing GitHub issues
-
-Create a new issue with detailed description
-
-License
+## License
 MIT License - See LICENSE file for details.
